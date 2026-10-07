@@ -51,18 +51,6 @@ def handle_include_read(
 def setup(app: Sphinx) -> None:
     """Sets up a minimal sphinx extension."""
     app.connect("include-read", handle_include_read)
-    app.connect("source-read", show_existing_key)
-
-
-def show_existing_key(app: Sphinx, docname: str, source: list[str]) -> None:
-    """Temporary test: print EXISTING_KEY in the homepage's first heading."""
-    if docname == "index":
-        key = os.environ.get("EXISTING_KEY", "(not set)")
-        source[0] = source[0].replace(
-            "# The uncompromising code formatter",
-            f"# The uncompromising code formatter — EXISTING_KEY: {key}",
-            1,
-        )
 
 
 # Necessary so Click doesn't hit an encode error when called by

@@ -8,9 +8,6 @@ services:
     volumes:
       - .:/app
       - docs-venv:/venv
-    env_file:
-      - path: /run/base44/app.env
-        required: false
     environment:
       - SETUPTOOLS_SCM_PRETEND_VERSION=0.0.dev0
       - PATH=/venv/bin:/usr/local/bin:/usr/bin:/bin
