@@ -1,0 +1,62 @@
+# Base44 dev environment for Black.
+# docs:   live-reloading Sphinx docs (sphinx-autobuild) on host port 3000 (the preview)
+# blackd: Black's HTTP formatting server on host port 45484, running from source
+services:
+  docs:
+    image: python:3.13-slim
+    working_dir: /app
+    volumes:
+      - .:/app
+      - docs-venv:/venv
+    environment:
+      - SETUPTOOLS_SCM_PRETEND_VERSION=0.0.dev0
+      - PATH=/venv/bin:/usr/local/bin:/usr/bin:/bin
+    command:
+      - sh
+      - -ec
+      - |
+        apt-get update -qq && apt-get install -y -qq git curl >/dev/null
+        git config --global --add safe.directory /app
+        [ -x /venv/bin/python ] || python -m venv /venv
+        /venv/bin/pip install -q --upgrade pip
+        /venv/bin/pip install -q -e '.[d]'
+        /venv/bin/pip install -q --group docs sphinx-autobuild
+        exec /venv/bin/sphinx-autobuild --host 0.0.0.0 --port 8000 docs /tmp/docs_build
+    ports:
+      - "3000:8000"
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:8000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 300s
+
+  blackd:
+    image: python:3.13-slim
+    working_dir: /app
+    volumes:
+      - .:/app
+      - blackd-venv:/venv
+    environment:
+      - SETUPTOOLS_SCM_PRETEND_VERSION=0.0.dev0
+    command:
+      - sh
+      - -ec
+      - |
+        [ -x /venv/bin/python ] || python -m venv /venv
+        /venv/bin/pip install -q -e '.[d]' watchfiles
+        exec /venv/bin/watchfiles --filter python '/venv/bin/blackd --bind-host 0.0.0.0 --bind-port 45484' src
+    ports:
+      - "45484:45484"
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "/venv/bin/python", "-c", "import urllib.request as u; u.urlopen(u.Request('http://localhost:45484/', data=b'x=1', method='POST'), timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 180s
+
+volumes:
+  docs-venv:
+  blackd-venv:
